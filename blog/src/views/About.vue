@@ -126,7 +126,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { 
   User, Code, BarChart3, Mail, 
   Github, Twitter, Mail as MailIcon, 
@@ -140,6 +140,8 @@ const postsStore = usePostsStore()
 const configStore = useConfigStore()
 const backgroundStore = useBackgroundStore()
 
+const totalComments = ref(0)
+
 const skills = computed(() => {
   return (configStore.skills || []).map(skill => ({
     ...skill,
@@ -150,17 +152,23 @@ const skills = computed(() => {
 const stats = computed(() => {
   const posts = postsStore.posts
   const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0)
-  // Calculate actual comment count from localStorage
-  const totalComments = posts.reduce((sum, post) => {
-    return sum + postsStore.getActualCommentCount(post.id)
-  }, 0)
   
   return {
     posts: posts.length,
     tags: postsStore.allTags.length,
     views: totalViews,
-    comments: totalComments
+    comments: totalComments.value
   }
+})
+
+// 异步获取评论总数
+onMounted(async () => {
+  const posts = postsStore.posts
+  let count = 0
+  for (const post of posts) {
+    count += await postsStore.getActualCommentCount(post.id)
+  }
+  totalComments.value = count
 })
 
 const contacts = computed(() => {
